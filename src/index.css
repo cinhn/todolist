@@ -13,7 +13,7 @@ body,
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, sans-serif;
-  background: #efefee;
+  background: #fff;
   color: #111;
   -webkit-font-smoothing: antialiased;
 }
