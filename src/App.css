@@ -1,0 +1,421 @@
+.app {
+  min-height: 100%;
+  padding: clamp(1.25rem, 4vw, 2.75rem) clamp(1rem, 5vw, 3.5rem) 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.top-grid {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 380px);
+  gap: 2rem 3rem;
+  align-items: start;
+  margin-bottom: 2.25rem;
+}
+
+@media (max-width: 820px) {
+  .top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.brand-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+}
+
+.brand-sub {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #333;
+  max-width: 28ch;
+}
+
+.input-card {
+  background: #f7f7f6;
+  border-radius: 20px;
+  padding: 1.25rem 1.25rem 1.1rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.input-card .field-label {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.input-card input[type="text"],
+.input-card textarea {
+  width: 100%;
+  border: 1px solid #c8c8c6;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.input-card textarea {
+  min-height: 4rem;
+  resize: vertical;
+}
+
+.input-card .task-input {
+  margin-bottom: 0.85rem;
+}
+
+.pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.pill {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid #bbb;
+  background: #fff;
+  color: #222;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pill:hover {
+  transform: translateY(-1px);
+}
+
+.pill.selected {
+  border-color: #111;
+  box-shadow: 0 0 0 1px #111 inset;
+  font-weight: 500;
+}
+
+.pill.time-sensitive.selected {
+  background: #fff8d6;
+}
+.pill.house-chores.selected {
+  background: #ebe4ff;
+}
+.pill.career.selected {
+  background: #ffe8d9;
+}
+.pill.health.selected {
+  background: #daf5ea;
+}
+.pill.side-quests.selected {
+  background: #ffddea;
+}
+
+.row-due-today {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.row-due-today label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.row-due-today input[type="date"] {
+  border: 1px solid #c8c8c6;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  background: #fff;
+}
+
+.add-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.btn-add {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.25rem;
+  font-weight: 500;
+}
+
+.btn-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.list-shell {
+  background: #f7f7f6;
+  border-radius: 20px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0 0.5rem;
+  align-items: flex-end;
+}
+
+.tab {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  padding: 0.65rem 1rem 0.55rem;
+  border: none;
+  border-radius: 14px 14px 0 0;
+  margin-right: 2px;
+  margin-top: 0.5rem;
+  background: #e8e8e6;
+  color: #222;
+  transition: background 0.15s ease;
+}
+
+.tab.everything {
+  background: #e4e4e2;
+}
+
+.tab.time-sensitive {
+  background: #fff3b0;
+}
+
+.tab.house-chores {
+  background: #ddd5f7;
+}
+
+.tab.career {
+  background: #ffd4b8;
+}
+
+.tab.health {
+  background: #c5f0dc;
+}
+
+.tab.side-quests {
+  background: #ffc8e0;
+}
+
+.tab.today {
+  background: #cfe8ff;
+}
+
+.tab.active {
+  background: #fff;
+  font-weight: 700;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.8rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.list-panel {
+  background: #fff;
+  border-radius: 0 0 18px 18px;
+  min-height: 220px;
+  padding: 1.35rem 1.5rem 1.75rem;
+  position: relative;
+}
+
+.list-empty {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.todo-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem 1rem;
+  align-items: start;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.todo-item:last-child {
+  border-bottom: none;
+}
+
+.todo-check {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.2rem;
+  accent-color: #111;
+  cursor: pointer;
+}
+
+.todo-check:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
+.todo-body {
+  min-width: 0;
+}
+
+.todo-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.todo-title {
+  font-size: 1rem;
+  font-weight: 400;
+  margin: 0;
+  word-break: break-word;
+}
+
+.task-text-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.task-text-wrap .strike-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: #111;
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+.task-text-wrap.striking .strike-line {
+  animation: strikeAcross 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.task-text-wrap.done .strike-line {
+  transform: scaleX(1);
+}
+
+.task-text-wrap.done .todo-title {
+  color: #666;
+}
+
+@keyframes strikeAcross {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.todo-meta {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.65rem;
+  color: #555;
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  background: #f0f0ef;
+}
+
+.notes-block {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: #333;
+  line-height: 1.45;
+}
+
+.notes-block a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-panel {
+  max-width: 400px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: #f7f7f6;
+  border-radius: 20px;
+}
+
+.auth-panel h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.auth-panel p {
+  margin: 0 0 1rem;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+.auth-panel input[type="email"] {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #c8c8c6;
+  margin-bottom: 0.75rem;
+}
+
+.auth-msg {
+  font-size: 0.85rem;
+  color: #2a6;
+  margin-top: 0.5rem;
+}
+
+.auth-err {
+  font-size: 0.85rem;
+  color: #b22;
+  margin-top: 0.5rem;
+}
+
+.setup-banner {
+  background: #fff8e6;
+  border: 1px solid #e6d9a8;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.sign-out {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.7rem;
+  background: transparent;
+  border: 1px solid #bbb;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.header-with-signout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
