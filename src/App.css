@@ -1,20 +1,28 @@
 .app {
   min-height: 100%;
+  width: 100%;
+  max-width: min(120rem, 100%);
   padding: clamp(1.25rem, 4vw, 2.75rem) clamp(1rem, 5vw, 3.5rem) 3rem;
-  max-width: 1200px;
   margin: 0 auto;
+}
+
+.app--signin {
+  background: #f8f7f3;
 }
 
 .top-bar {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
   gap: 1rem 1.5rem;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 2.25rem;
 }
 
 .head-sidebar {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .new-task-panel {
@@ -50,9 +58,14 @@
 }
 
 .stat-tile-below-email {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   margin-top: 0.85rem;
   width: 100%;
   min-width: 0;
+  min-height: 0;
   max-width: none;
   box-sizing: border-box;
 }
@@ -61,37 +74,57 @@
   min-width: 0;
 }
 
+.stat-tile-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
 .stat-tile-line {
   margin: 0;
+  flex: 1;
+  min-width: 0;
   font-family: "Roboto Mono", ui-monospace, monospace;
   font-size: 0.95rem;
+  font-weight: 500;
   line-height: 1.4;
   color: #222;
 }
 
-.stat-tile-value {
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.stat-tile-pencil {
+  width: clamp(3.25rem, 5vw, 4.25rem);
+  height: auto;
+  max-height: clamp(3.75rem, 6vw, 5rem);
+  flex-shrink: 0;
+  object-fit: contain;
+  object-position: center;
 }
 
-.stat-tile-rest {
+/* Same typography as .stat-tile-line (tasks completed today). */
+.brand-name-heading {
+  margin: 0 0 0.4rem;
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.95rem;
   font-weight: 500;
+  line-height: 1.4;
+  color: #222;
 }
 
-.brand-title {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.75rem;
-  text-transform: uppercase;
+.brand-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+  min-width: 0;
 }
 
-.brand-title-one-line {
-  font-size: clamp(1.35rem, 2.8vw, 2rem);
-  line-height: 1.1;
-  margin-bottom: 0.5rem;
+.brand-header-graphic {
+  display: block;
+  width: 100%;
+  max-width: 11.5rem;
+  height: auto;
+  margin: 0 0 0.85rem;
+  border-radius: 10px;
 }
 
 .brand-sub {
@@ -128,10 +161,17 @@
   background: #fff;
   font-family: "Roboto Mono", ui-monospace, monospace;
   font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.input-card input[type="text"]::placeholder,
+.input-card textarea::placeholder {
+  color: #b8b8b2;
+  opacity: 1;
 }
 
 .input-card textarea {
-  min-height: 4rem;
+  min-height: calc(2 * 0.65rem + 1.35em);
   resize: vertical;
   margin-bottom: 1rem;
 }
@@ -172,9 +212,6 @@
   font-weight: 500;
 }
 
-.pill.time-sensitive.selected {
-  background: #fff8d6;
-}
 .pill.house-chores.selected {
   background: #ebe4ff;
 }
@@ -248,6 +285,10 @@
   color: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   white-space: nowrap;
+}
+
+.auth-empty-field-tip {
+  transform: translateX(-50%);
 }
 
 .row-due-today label {
@@ -342,9 +383,6 @@
 }
 
 .tab.active {
-  background: #fff;
-  font-family: "Roboto Mono", ui-monospace, monospace;
-  font-size: 0.72rem;
   font-weight: 700;
   padding-bottom: 0.65rem;
   margin-bottom: -1px;
@@ -366,8 +404,24 @@
   font-size: 0.95rem;
 }
 
+.list-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0 0.25rem;
+}
+
+.list-empty-image {
+  display: block;
+  width: 100%;
+  max-width: min(calc(19.5rem * 0.85), 100%);
+  height: auto;
+}
+
 .todo-item {
   --todo-action-btn-h: 2rem;
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.85rem 1rem;
@@ -380,16 +434,58 @@
   border-bottom: none;
 }
 
+.todo-item--removing {
+  pointer-events: none;
+}
+
+.todo-item--removing .todo-check,
+.todo-item--removing .todo-body {
+  animation: todoRemoveVanish 0.58s ease-in forwards;
+}
+
+@keyframes todoRemoveVanish {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(3px);
+  }
+}
+
+.todo-remove-particles {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.todo-remove-particle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  opacity: 1;
+  animation: todoParticleBurst 0.58s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes todoParticleBurst {
+  to {
+    transform: translate(var(--tx), var(--ty)) scale(0.15);
+    opacity: 0;
+  }
+}
+
 .todo-check {
   width: 1.15rem;
   height: 1.15rem;
   margin-top: calc((var(--todo-action-btn-h) - 1.15rem) / 2);
   accent-color: #111;
   cursor: pointer;
-}
-
-.todo-item--editing .todo-check {
-  margin-top: 0.35rem;
 }
 
 .todo-check:disabled {
@@ -496,6 +592,12 @@
   background: #f0f0ef;
 }
 
+.tag-chip.tag-overdue {
+  background: #ffe0e0;
+  color: #7a1f1f;
+  font-weight: 600;
+}
+
 .notes-block {
   margin-top: 0.5rem;
   font-size: 0.82rem;
@@ -509,16 +611,34 @@
 }
 
 .auth-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   max-width: 400px;
-  margin: 3rem auto;
-  padding: 2rem;
-  background: #F8F7F3;
-  border-radius: 20px;
+  margin: 6.25rem auto 2.5rem;
+  padding: 0 1rem;
+  text-align: center;
 }
 
-.auth-panel h1 {
-  font-size: 1.5rem;
-  margin: 0 0 0.5rem;
+.auth-panel .btn-add {
+  align-self: center;
+}
+
+.auth-hello-banner {
+  display: block;
+  width: 32%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 12px;
+}
+
+.auth-brand-banner {
+  display: block;
+  width: 120%;
+  height: auto;
+  margin: 0 0 0.75rem;
+  margin-left: -10%;
+  border-radius: 12px;
 }
 
 .auth-panel p {
@@ -532,19 +652,30 @@
   padding: 0.6rem 0.75rem;
   border-radius: 10px;
   border: 1px solid #c8c8c6;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.9rem;
+}
+
+.auth-panel input[type="email"]::placeholder {
+  color: #b8b8b2;
+  opacity: 1;
+}
+
+.auth-msg,
+.auth-err {
+  font-size: 0.78rem;
+  margin-top: 0.5rem;
+  padding: 1.1rem 1.8rem;
 }
 
 .auth-msg {
-  font-size: 0.85rem;
   color: #2a6;
-  margin-top: 0.5rem;
 }
 
 .auth-err {
-  font-size: 0.85rem;
   color: #b22;
-  margin-top: 0.5rem;
 }
 
 .setup-banner {
@@ -617,8 +748,38 @@
   color: #111;
 }
 
+.btn-remove-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--todo-action-btn-h);
+  min-width: var(--todo-action-btn-h);
+  height: var(--todo-action-btn-h);
+  min-height: var(--todo-action-btn-h);
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid #c9a8a8;
+  background: #fff;
+  color: #7a3333;
+  cursor: pointer;
+}
+
+.btn-remove-icon:hover:not(:disabled) {
+  border-color: #8b2222;
+  color: #5a1515;
+  background: #fff5f5;
+}
+
+.btn-remove-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .todo-edit-form {
   width: 100%;
+  padding-top: 1.5rem;
 }
 
 .todo-edit-label {
@@ -633,12 +794,14 @@
 
 .todo-edit-title {
   width: 100%;
+  max-width: 28rem;
   border: 1px solid #c8c8c6;
   border-radius: 10px;
   padding: 0.55rem 0.65rem;
   background: #fafafa;
   font-family: "Roboto Mono", ui-monospace, monospace;
   font-size: 0.85rem;
+  line-height: 1.35;
   margin-bottom: 1rem;
 }
 
@@ -650,7 +813,8 @@
   background: #fafafa;
   font-family: "Roboto Mono", ui-monospace, monospace;
   font-size: 0.85rem;
-  min-height: 3.5rem;
+  line-height: 1.35;
+  min-height: calc(2 * 0.55rem + 1.35em);
   resize: vertical;
   margin-bottom: 1rem;
 }
@@ -666,10 +830,40 @@
 
 .todo-edit-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
   flex-wrap: wrap;
   margin-top: 0;
+}
+
+.todo-edit-actions-start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-delete-task {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  background: #fff;
+  border: 1px solid #c9a8a8;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  color: #7a3333;
+  cursor: pointer;
+}
+
+.btn-delete-task:hover:not(:disabled) {
+  border-color: #8b2222;
+  color: #5a1515;
+  background: #fff5f5;
+}
+
+.btn-delete-task:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btn-edit-cancel {

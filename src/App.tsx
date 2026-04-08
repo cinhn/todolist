@@ -21,20 +21,23 @@ function brandNameFromUser(u: User): string {
   return "YOUR";
 }
 import "./App.css";
+import { playPencilDoneSound, primeTaskDoneAudio } from "./playPencilSound";
 import { supabase, supabaseConfigured } from "./supabaseClient";
 
-export type CategoryId =
-  | "time-sensitive"
+/** Categories the user can assign (pills). Not stored: "time-sensitive" — that tab uses due dates. */
+export type AssignableCategoryId =
   | "house-chores"
   | "career"
   | "health"
   | "side-quests"
   | "misc";
 
-export type TabId = "everything" | "today" | CategoryId;
+/** Category tabs including the due-date–driven Time-Sensitive tab. */
+export type CategoryTabId = AssignableCategoryId | "time-sensitive";
 
-const CATEGORY_ORDER: CategoryId[] = [
-  "time-sensitive",
+export type TabId = "everything" | "today" | CategoryTabId;
+
+const ASSIGNABLE_CATEGORY_ORDER: AssignableCategoryId[] = [
   "house-chores",
   "career",
   "health",
@@ -42,7 +45,9 @@ const CATEGORY_ORDER: CategoryId[] = [
   "misc",
 ];
 
-const CATEGORY_LABEL: Record<CategoryId, string> = {
+const CATEGORY_TAB_ORDER: CategoryTabId[] = ["time-sensitive", ...ASSIGNABLE_CATEGORY_ORDER];
+
+const CATEGORY_LABEL: Record<CategoryTabId, string> = {
   "time-sensitive": "Time-Sensitive",
   "house-chores": "House",
   career: "Career",
@@ -54,7 +59,7 @@ const CATEGORY_LABEL: Record<CategoryId, string> = {
 type TodoRow = {
   id: string;
   title: string;
-  categories: CategoryId[];
+  categories: AssignableCategoryId[];
   notes: string | null;
   due_date: string | null;
   for_today: boolean;
@@ -69,11 +74,15 @@ function localDateString(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-function parseCategories(raw: unknown): CategoryId[] {
+function parseCategories(raw: unknown): AssignableCategoryId[] {
   if (!Array.isArray(raw)) return [];
-  const set = new Set(CATEGORY_ORDER);
-  return raw.filter((c): c is CategoryId => typeof c === "string" && set.has(c as CategoryId));
+  const set = new Set(ASSIGNABLE_CATEGORY_ORDER);
+  return raw.filter(
+    (c): c is AssignableCategoryId => typeof c === "string" && set.has(c as AssignableCategoryId)
+  );
 }
+
+const REMOVE_ANIMATION_MS = 600;
 
 function EditPencilIcon() {
   return (
@@ -92,6 +101,65 @@ function EditPencilIcon() {
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function TodoRemoveParticles() {
+  const bits = useMemo(
+    () =>
+      Array.from({ length: 22 }, (_, i) => {
+        const angle = (i / 22) * Math.PI * 2 + 0.35;
+        const dist = 32 + (i % 8) * 7;
+        const tx = Math.round(Math.cos(angle) * dist * 10) / 10;
+        const ty = Math.round(Math.sin(angle) * dist * 10) / 10;
+        return {
+          tx,
+          ty,
+          delay: `${(i % 6) * 0.02}s`,
+          bg: ["#2a2a2a", "#4a4a48", "#6b5c4c", "#333"][i % 4],
+        };
+      }),
+    []
+  );
+  return (
+    <span className="todo-remove-particles" aria-hidden>
+      {bits.map((b, i) => (
+        <span
+          key={i}
+          className="todo-remove-particle"
+          style={
+            {
+              "--tx": `${b.tx}px`,
+              "--ty": `${b.ty}px`,
+              animationDelay: b.delay,
+              backgroundColor: b.bg,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </span>
   );
 }
 
@@ -118,8 +186,23 @@ function linkify(text: string): ReactNode[] {
   return parts.length ? parts : [text];
 }
 
+function isTodoOverdue(todo: TodoRow): boolean {
+  if (todo.completed_at || !todo.due_date) return false;
+  return todo.due_date < localDateString();
+}
+
 function sortTodosForView(list: TodoRow[]): TodoRow[] {
-  const inc = list.filter((t) => !t.completed_at).sort((a, b) => a.sort_key - b.sort_key);
+  const inc = list.filter((t) => !t.completed_at);
+  const overdue = inc
+    .filter((t) => isTodoOverdue(t))
+    .sort((a, b) => {
+      const da = a.due_date!;
+      const db = b.due_date!;
+      if (da < db) return -1;
+      if (da > db) return 1;
+      return a.sort_key - b.sort_key;
+    });
+  const notOverdue = inc.filter((t) => !isTodoOverdue(t)).sort((a, b) => a.sort_key - b.sort_key);
   const done = list
     .filter((t) => t.completed_at)
     .sort((a, b) => {
@@ -127,7 +210,7 @@ function sortTodosForView(list: TodoRow[]): TodoRow[] {
       const tb = new Date(b.completed_at!).getTime();
       return ta - tb;
     });
-  return [...inc, ...done];
+  return [...overdue, ...notOverdue, ...done];
 }
 
 function filterByTab(list: TodoRow[], tab: TabId): TodoRow[] {
@@ -135,6 +218,9 @@ function filterByTab(list: TodoRow[], tab: TabId): TodoRow[] {
   if (tab === "everything") return list;
   if (tab === "today") {
     return list.filter((t) => t.for_today || t.due_date === today);
+  }
+  if (tab === "time-sensitive") {
+    return list.filter((t) => Boolean(t.due_date));
   }
   return list.filter((t) => t.categories.includes(tab));
 }
@@ -153,6 +239,10 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [authMsg, setAuthMsg] = useState<string | null>(null);
   const [authErr, setAuthErr] = useState<string | null>(null);
+  const [authEmptyFieldTipPos, setAuthEmptyFieldTipPos] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const authSubmitBtnRef = useRef<HTMLButtonElement>(null);
 
   const [todos, setTodos] = useState<TodoRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -162,7 +252,7 @@ export default function App() {
   const [notes, setNotes] = useState("");
   const [due, setDue] = useState("");
   const [forToday, setForToday] = useState(false);
-  const [selectedCats, setSelectedCats] = useState<Set<CategoryId>>(new Set());
+  const [selectedCats, setSelectedCats] = useState<Set<AssignableCategoryId>>(new Set());
   const [addDisabledTipPos, setAddDisabledTipPos] = useState<{ x: number; y: number } | null>(null);
 
   const [strikingId, setStrikingId] = useState<string | null>(null);
@@ -173,8 +263,9 @@ export default function App() {
   const [editNotes, setEditNotes] = useState("");
   const [editDue, setEditDue] = useState("");
   const [editForToday, setEditForToday] = useState(false);
-  const [editCats, setEditCats] = useState<Set<CategoryId>>(new Set());
+  const [editCats, setEditCats] = useState<Set<AssignableCategoryId>>(new Set());
   const [editSaving, setEditSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const user = session?.user ?? null;
 
@@ -235,8 +326,9 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase || !user) return;
+    const client = supabase;
     void refreshTodos(user);
-    const ch = supabase
+    const ch = client
       .channel(`todos-${user.id}`)
       .on(
         "postgres_changes",
@@ -247,7 +339,7 @@ export default function App() {
       )
       .subscribe();
     return () => {
-      void supabase.removeChannel(ch);
+      void client.removeChannel(ch);
     };
   }, [user, refreshTodos]);
 
@@ -256,7 +348,7 @@ export default function App() {
       document.title = DEFAULT_PAGE_TITLE;
       return;
     }
-    document.title = `${brandNameFromUser(user)}'S TO DOs`;
+    document.title = `${brandNameFromUser(user)}'s to do list`;
   }, [user]);
 
   const visibleTodos = useMemo(
@@ -266,7 +358,7 @@ export default function App() {
 
   const todayCompleted = useMemo(() => completedTodayCount(todos), [todos]);
 
-  const toggleCat = (id: CategoryId) => {
+  const toggleCat = (id: AssignableCategoryId) => {
     setSelectedCats((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -275,7 +367,7 @@ export default function App() {
     });
   };
 
-  const toggleEditCat = (id: CategoryId) => {
+  const toggleEditCat = (id: AssignableCategoryId) => {
     setEditCats((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -306,7 +398,7 @@ export default function App() {
     const t = editTitle.trim();
     if (!t || editCats.size === 0) return;
     setEditSaving(true);
-    const cats = CATEGORY_ORDER.filter((c) => editCats.has(c));
+    const cats = ASSIGNABLE_CATEGORY_ORDER.filter((c) => editCats.has(c));
     const { error } = await supabase
       .from("todos")
       .update({
@@ -331,12 +423,23 @@ export default function App() {
     if (!supabase) return;
     setAuthMsg(null);
     setAuthErr(null);
+    if (!email.trim()) {
+      const btn = authSubmitBtnRef.current;
+      if (btn) {
+        const r = btn.getBoundingClientRect();
+        setAuthEmptyFieldTipPos({ x: r.left + r.width / 2, y: r.bottom + 10 });
+      } else {
+        setAuthEmptyFieldTipPos({ x: window.innerWidth / 2, y: 120 });
+      }
+      return;
+    }
+    setAuthEmptyFieldTipPos(null);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: window.location.origin },
     });
     if (error) setAuthErr(error.message);
-    else setAuthMsg("Check your email for the sign-in link.");
+    else setAuthMsg("Check your email for the sign in link!");
   };
 
   const signOut = async () => {
@@ -349,7 +452,7 @@ export default function App() {
     if (!supabase || !user) return;
     const t = title.trim();
     if (!t || selectedCats.size === 0) return;
-    const cats = CATEGORY_ORDER.filter((c) => selectedCats.has(c));
+    const cats = ASSIGNABLE_CATEGORY_ORDER.filter((c) => selectedCats.has(c));
     const row = {
       user_id: user.id,
       title: t,
@@ -384,10 +487,12 @@ export default function App() {
     setTodos((prev) =>
       prev.map((x) => (x.id === id ? { ...x, completed_at: completedAt } : x))
     );
+    playPencilDoneSound();
   };
 
   const onCheckStart = (todo: TodoRow) => {
     if (todo.completed_at || strikingId) return;
+    primeTaskDoneAudio();
     setStrikingId(todo.id);
   };
 
@@ -410,6 +515,28 @@ export default function App() {
     }
     setTodos((prev) => prev.map((x) => (x.id === todo.id ? { ...x, for_today: next } : x)));
   };
+
+  const startRemoveTodo = useCallback(
+    (todo: TodoRow) => {
+      if (!supabase || !user || removingId || strikingId === todo.id) return;
+      const client = supabase;
+      const id = todo.id;
+      setRemovingId(id);
+      window.setTimeout(async () => {
+        setRemovingId((cur) => (cur === id ? null : cur));
+        const { error } = await client.from("todos").delete().eq("id", id);
+        if (error) {
+          setLoadErr(error.message);
+          await refreshTodos(user);
+          return;
+        }
+        setTodos((prev) => prev.filter((x) => x.id !== id));
+        setEditingId((e) => (e === id ? null : e));
+        setEditSaving(false);
+      }, REMOVE_ANIMATION_MS);
+    },
+    [supabase, user, removingId, strikingId, refreshTodos]
+  );
 
   if (!supabaseConfigured) {
     return (
@@ -435,21 +562,50 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="app">
+      <div className="app app--signin">
         <form className="auth-panel" onSubmit={sendMagicLink}>
-          <h1>YOUR TO DO LIST</h1>
+          <img
+            className="auth-hello-banner"
+            src="/auth-hello.png"
+            alt="Hello"
+            width={673}
+            height={633}
+            decoding="async"
+          />
+          <img
+            className="auth-brand-banner"
+            src="/auth-your-to-do-list.png"
+            alt="YOUR TO DO LIST"
+            width={2195}
+            height={296}
+            decoding="async"
+          />
           <p>Sign in with your email. We&apos;ll send a magic link so your list syncs on every device.</p>
           <input
             type="email"
-            required
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setAuthEmptyFieldTipPos(null);
+            }}
             autoComplete="email"
           />
-          <button type="submit" className="btn-add">
+          <button ref={authSubmitBtnRef} type="submit" className="btn-add">
             Send magic link
           </button>
+          {authEmptyFieldTipPos ? (
+            <div
+              className="add-disabled-cursor-tip auth-empty-field-tip"
+              style={{
+                left: authEmptyFieldTipPos.x,
+                top: authEmptyFieldTipPos.y,
+              }}
+              role="alert"
+            >
+              Please enter an email address
+            </div>
+          ) : null}
           {authMsg ? <p className="auth-msg">{authMsg}</p> : null}
           {authErr ? <p className="auth-err">{authErr}</p> : null}
         </form>
@@ -463,10 +619,17 @@ export default function App() {
     <div className="app">
       <div className="top-bar">
         <aside className="head-sidebar">
-          <h1 className="brand-title brand-title-one-line">
-            {brandNameFromUser(user)}&apos;S TO DOs
-          </h1>
-          <p className="brand-sub">All the things I need to do compiled in one big site.</p>
+          <header className="brand-head">
+            <h1 className="brand-name-heading">{brandNameFromUser(user)}&apos;S</h1>
+            <img
+              className="brand-header-graphic"
+              src="/header-todo-list.png"
+              alt="To do list"
+              decoding="async"
+              fetchPriority="high"
+            />
+          </header>
+          <p className="brand-sub">All the life admin I need to do compiled in one place, organised the way I want it :) </p>
           <div className="user-row">
             <span className="user-email">{user.email}</span>
             <button type="button" className="sign-out" onClick={() => void signOut()}>
@@ -474,12 +637,20 @@ export default function App() {
             </button>
           </div>
           <div className="stat-tile stat-tile-below-email" aria-live="polite">
-            <p className="stat-tile-line">
-              <span className="stat-tile-value">{todayCompleted}</span>{" "}
-              <span className="stat-tile-rest">
+            <div className="stat-tile-inner">
+              <p className="stat-tile-line">
+                {todayCompleted}{" "}
                 {todayCompleted === 1 ? "task" : "tasks"} completed today
-              </span>
-            </p>
+              </p>
+              <img
+                className="stat-tile-pencil"
+                src="/stat-pencil.png"
+                alt=""
+                width={72}
+                height={63}
+                decoding="async"
+              />
+            </div>
           </div>
         </aside>
         <form className="input-card input-card-bar new-task-panel" onSubmit={addTodo}>
@@ -497,7 +668,7 @@ export default function App() {
           />
           <span className="field-label">Categories</span>
           <div className="pills-row">
-            {CATEGORY_ORDER.map((id) => (
+            {ASSIGNABLE_CATEGORY_ORDER.map((id) => (
               <button
                 key={id}
                 type="button"
@@ -513,6 +684,7 @@ export default function App() {
           </label>
           <textarea
             id="task-notes"
+            rows={1}
             placeholder="URLs or reminders…"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -587,7 +759,7 @@ export default function App() {
           >
             Today
           </button>
-          {CATEGORY_ORDER.map((id) => (
+          {CATEGORY_TAB_ORDER.map((id) => (
             <button
               key={id}
               type="button"
@@ -601,19 +773,38 @@ export default function App() {
         </div>
         <div className="list-panel">
           {visibleTodos.length === 0 ? (
-            <p className="list-empty">Nothing here yet.</p>
+            <div className="list-empty-state" role="status" aria-live="polite">
+              <img
+                className="list-empty-image"
+                src="/empty-state.png"
+                alt="Nothing here yet"
+                width={2388}
+                height={1668}
+                decoding="async"
+              />
+            </div>
           ) : (
             visibleTodos.map((todo) => (
               <article
                 key={todo.id}
-                className={editingId === todo.id ? "todo-item todo-item--editing" : "todo-item"}
+                className={[
+                  "todo-item",
+                  editingId === todo.id ? "todo-item--editing" : "",
+                  removingId === todo.id ? "todo-item--removing" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
+                {removingId === todo.id ? <TodoRemoveParticles /> : null}
                 <input
                   type="checkbox"
                   className="todo-check"
                   checked={Boolean(todo.completed_at) || strikingId === todo.id}
                   disabled={
-                    Boolean(todo.completed_at) || strikingId === todo.id || editingId === todo.id
+                    Boolean(todo.completed_at) ||
+                    strikingId === todo.id ||
+                    editingId === todo.id ||
+                    removingId === todo.id
                   }
                   onChange={() => onCheckStart(todo)}
                 />
@@ -629,7 +820,7 @@ export default function App() {
                       />
                       <span className="todo-edit-label">Categories</span>
                       <div className="pills-row todo-edit-pills">
-                        {CATEGORY_ORDER.map((id) => (
+                        {ASSIGNABLE_CATEGORY_ORDER.map((id) => (
                           <button
                             key={id}
                             type="button"
@@ -646,6 +837,7 @@ export default function App() {
                       <textarea
                         id={`edit-notes-${todo.id}`}
                         className="todo-edit-notes"
+                        rows={1}
                         value={editNotes}
                         onChange={(e) => setEditNotes(e.target.value)}
                       />
@@ -664,9 +856,19 @@ export default function App() {
                         </label>
                       </div>
                       <div className="todo-edit-actions">
-                        <button type="button" className="btn-edit-cancel" onClick={cancelEdit}>
-                          Cancel
-                        </button>
+                        <div className="todo-edit-actions-start">
+                          <button
+                            type="button"
+                            className="btn-delete-task"
+                            disabled={editSaving || removingId !== null}
+                            onClick={() => startRemoveTodo(todo)}
+                          >
+                            Delete
+                          </button>
+                          <button type="button" className="btn-edit-cancel" onClick={cancelEdit}>
+                            Cancel
+                          </button>
+                        </div>
                         <button
                           type="submit"
                           className="btn-add"
@@ -691,28 +893,45 @@ export default function App() {
                             <span className="todo-title">{todo.title}</span>
                           </span>
                         </div>
-                        {!todo.completed_at ? (
-                          <div className="todo-actions">
-                            <button
-                              type="button"
-                              className="btn-mark-today"
-                              onClick={() => void toggleTodoForToday(todo)}
-                              disabled={editingId === todo.id}
-                            >
-                              {todo.for_today ? "Remove from Today" : "Mark for today"}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-edit-icon"
-                              onClick={() => startEdit(todo)}
-                              aria-label="Edit task"
-                            >
-                              <EditPencilIcon />
-                            </button>
-                          </div>
-                        ) : null}
+                        <div className="todo-actions">
+                          {!todo.completed_at ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-mark-today"
+                                onClick={() => void toggleTodoForToday(todo)}
+                                disabled={editingId === todo.id || removingId !== null}
+                              >
+                                {todo.for_today ? "Remove from Today" : "Mark for today"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-edit-icon"
+                                onClick={() => startEdit(todo)}
+                                disabled={removingId !== null}
+                                aria-label="Edit task"
+                              >
+                                <EditPencilIcon />
+                              </button>
+                            </>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="btn-remove-icon"
+                            onClick={() => startRemoveTodo(todo)}
+                            disabled={
+                              strikingId === todo.id || removingId !== null
+                            }
+                            aria-label="Remove task"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
                       </div>
                       <div className="todo-meta">
+                        {isTodoOverdue(todo) ? (
+                          <span className="tag-chip tag-overdue">Overdue</span>
+                        ) : null}
                         {todo.categories.map((c) => (
                           <span key={c} className="tag-chip">
                             {CATEGORY_LABEL[c]}
