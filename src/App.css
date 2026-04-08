@@ -10,6 +10,18 @@
   background: #f8f7f3;
 }
 
+@media (max-width: 640px) {
+  .app.app--signin {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .auth-panel {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
 .top-bar {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);

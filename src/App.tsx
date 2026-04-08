@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 
-const DEFAULT_PAGE_TITLE = "YOUR TO DO LIST";
+const DEFAULT_PAGE_TITLE = "life admin list";
 
 /** Short name for headings / tab title (e.g. CINDY from cindy@x.com or user_metadata). */
 function brandNameFromUser(u: User): string {
